@@ -4,10 +4,10 @@ use warnings;
 use Term::ANSIColor;
 
 # From http://perlmaven.com/how-to-create-a-perl-module-for-code-reuse
-# expect ttrts perl module in a neighboring perl/ dir
+# expect ttrts perl module in cwd
 use File::Basename qw(dirname);
 use Cwd  qw(abs_path);
-use lib dirname(abs_path($0))."/perl"; 
+use lib dirname(abs_path($0)); 
 
 # Use our ttrts perl library
 use ttrts;
