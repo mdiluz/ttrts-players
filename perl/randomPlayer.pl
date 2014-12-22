@@ -17,7 +17,7 @@ NAME
 	randomPlayer.pl
 
 USAGE
-	randomPlayer.pl TEAM [OPTIONS]
+	randomPlayer.pl PLAYER_ID [OPTIONS]
 
 DESCRIPTION
 	A very random perl AI for ttrts
@@ -27,16 +27,16 @@ TEXT
 # Exit with usage if not given a number
 scalar(@ARGV) or printf $usage_text and exit 1;
 
-# Grab the team
-our $team = $ARGV[0];
+# Grab the player
+our $player = $ARGV[0];
 our $turn = 0;
 
 our $gameName;
 our $gameX;
 our $gameY;
 
-# If team is non-numeric
-($team =~ m/\D+/) and printf $usage_text and exit 1;
+# If player is non-numeric
+($player =~ m/\D+/) and printf $usage_text and exit 1;
 
 # Give random orders to all units
 sub OrderEverythingRandom
@@ -56,7 +56,7 @@ sub OrderEverythingRandom
 }
 
 # Show launch params
-printf("Launching with team %i\n",$team);
+printf("Launching with player %i\n",$player);
 
 # Stay looping the AI
 while ( 1 )
@@ -72,8 +72,8 @@ while ( 1 )
 	my @units = GetUnitsForTurn($turnFile);
 	my ($gameName,$gameX,$gameY) = GetHeaderForTurn($turnFile);
 
-	# Get units on my team
-	my @myUnits = getUnitsOnTeam($team,@units);
+	# Get units on my player
+	my @myUnits = getUnitsOnPlayer($player,@units);
 
 	# Generate some commands
 	my $commands = OrderEverythingRandom(@myUnits);
@@ -97,7 +97,7 @@ while ( 1 )
 		exit 0;
 	}
 
-	OutputCommandsFile $turn,$team,$commands;
+	OutputCommandsFile $turn,$player,$commands;
 
 	$turn++;
 
