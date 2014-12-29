@@ -3,15 +3,10 @@ use strict;
 use warnings;
 use Term::ANSIColor;
 
-# From http://perlmaven.com/how-to-create-a-perl-module-for-code-reuse
-# expect ttrts perl module in cwd
-use File::Basename qw(dirname);
-use Cwd  qw(abs_path);
-use lib dirname(abs_path($0)); 
-
 our $VERBOSE = $ENV{"VERBOSE"};
 
 # Use our ttrts perl library
+# located within the main https://github.com/mdiluz/ttrts repository
 use ttrts;
 
 our $usage_text=<<TEXT;
