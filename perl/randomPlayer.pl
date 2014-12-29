@@ -9,6 +9,8 @@ use File::Basename qw(dirname);
 use Cwd  qw(abs_path);
 use lib dirname(abs_path($0)); 
 
+our $VERBOSE = $ENV{"VERBOSE"};
+
 # Use our ttrts perl library
 use ttrts;
 
@@ -62,24 +64,24 @@ printf("Launching with player %i\n",$player);
 while ( 1 )
 {
 	# Wait for turn file
-	our $turnFile = GetTurnFile($turn);
+	our $turnFile = GetTurnFileName($turn);
 
 	# Wait for the turn file
-	printf("Waiting for %s\n", $turnFile);
+	$VERBOSE and printf("Waiting for %s\n", $turnFile);
 	WaitForFile $turnFile;
 
 	# Read in the game state from turnFile
-	my @units = GetUnitsForTurn($turnFile);
-	my ($gameName,$gameX,$gameY) = GetHeaderForTurn($turnFile);
+	my @units = GetUnitStringsFromFile($turnFile);
+	my ($major,$minor,$patch,$gameName,$gameX,$gameY) = GetGameInfoFromFile($turnFile);
 
 	# Get units on my player
-	my @myUnits = getUnitsOnPlayer($player,@units);
+	my @myUnits = GetPlayerUnits($player,@units);
 
 	# Generate some commands
 	my $commands = OrderEverythingRandom(@myUnits);
 
 	# At this point, print the game map
-	PrintGameMap($gameX,$gameY,@units);
+	PrintGameMapForTurn($turn);
 
 	if( scalar(@units) == 0 )
 	{
@@ -96,6 +98,7 @@ while ( 1 )
 		printf "Game over, you lose!\n";
 		exit 0;
 	}
+	# TODO: Detect lack of possible movement
 
 	OutputCommandsFile $turn,$player,$commands;
 
