@@ -22,11 +22,17 @@ OPTIONS
 ttrts = {}
 do 
 
-ttrts.PerformHandshake = function (sock)
+--[[ Attempt to connect to the server ]]
+ttrts.ConnectToHost = function (host)
+	print( "Connecting to " .. host )
 
-	if not sock then error("Must pass PerformHandshake a socket") end
+	ttrts.socket = socket.connect( host, 11715 )
+	if not ttrts.socket then error("Failed to connect to " .. host .. " on port 11715") end
 
-	local line = sock:receive('*l')
+	print( "Connected to " .. host )
+
+	-- Porform the hanshake
+	local line = ttrts.socket:receive('*l')
 
 	local player, name = string.match(line, "player (%d+) name ([%a%d]+)")
 
@@ -37,15 +43,19 @@ ttrts.PerformHandshake = function (sock)
 	print( "Name: " .. name )
 
 	-- return the handshake line with a new line (removed by the *l call to receive) and string end
-	sock:send( line .. "\n" .. "\0" )
+	ttrts.socket:send( line .. "\n" .. "\0" )
 
 	return player, name
 end
 
 -- [[ Recieve gamestate info ]]
-ttrts.GetState = function (newLine)
+ttrts.GetStateFromHost = function ()
 
-	if not newLine then error("Must pass GetState a method") end
+	if not ttrts.socket then error("ttrts.socket must be set") end
+
+	function newLine()
+		return ttrts.socket:receive('*l')
+	end
 
 	local line = ""
 	local state = {}
@@ -125,15 +135,13 @@ ttrts.GetRandomOrders = function( id, state )
 end
 
 -- [[ Send the orders to the server through the socket ]]
-ttrts.SendOrders = function( socket, orders )
+ttrts.SendOrdersToHost = function( orders )
 	assert( string.match(orders,"END"), "Cannot send orders without END" )
-	socket:send( orders .. "\0" )
+	ttrts.socket:send( orders .. "\0" )
 end
 
-end -- end ttrts
-
--- [[ http://lua-users.org/wiki/AlternativeGetOpt  ]]
-function getopt( arg, options ) 
+-- [[ using method from http://lua-users.org/wiki/AlternativeGetOpt  ]]
+ttrts.getopt function ( arg, options ) 
 	local tab = {} 
 	for k, v in ipairs(arg) do if string.sub( v, 1, 2) == "--" then local x = string.find( v, "=", 1, true ) if x then tab[ string.sub( v, 3, x-1 ) ] = string.sub( v, x+1 ) else tab[ string.sub( v, 3 ) ] = true end 
 	elseif string.sub( v, 1, 1 ) == "-" then local y = 2 local l = string.len(v) local jopt while ( y <= l ) do jopt = string.sub( v, y, y ) if string.find( options, jopt, 1, true ) then if y < l then tab[ jopt ] = string.sub( v, y+1 ) y = l else tab[ jopt ] = arg[ k + 1 ] end 
@@ -143,48 +151,36 @@ function getopt( arg, options )
 	return tab 
 end
 
+end -- end ttrts
+
+
+
 
 -- [[ =================== Program Start ======================= ]]
 
 -- [[ Get our options and set up state ]]
-local opts = getopt(arg, "host")
+local opts = ttrts.getopt(arg, "host")
 
 -- if no host or host not set
-if 	not opts.host 
-	or opts.host == true 
-then 
-	print(USAGE)
-	return
+if not opts.host or opts.host == true then 
+	print(USAGE) return
 end
 
---[[ Attempt to connect to the server ]]
-print( "Connecting to " .. opts.host )
+-- [[ Connect to the host ]]
+local player, name = ttrts.ConnectToHost(opts.host)
 
-local sock = socket.connect( opts.host, 11715 )
-if not sock then error("Failed to connect to " .. opts.host .. " on port 11715") end
-
-print( "Connected to " .. opts.host )
-
-local function GetNewLineFromSocket() 
-	return sock:receive('*l')
-end
-
---[[ Perform handshake ]]
-
--- receive the handshake line
-local player, name = ttrts.PerformHandshake(sock)
-
---[[ Begin main loop ]]
-while not gameover do
+--[[ Main Loop ]]
+while true do
 
 	-- Grab the current gamestate
-	local gamestate = ttrts.GetState( GetNewLineFromSocket )
+	local gamestate = ttrts.GetStateFromHost()
+
+	print("TURN " .. gamestate.turn )
 
 	-- get the orders
 	local orders = ttrts.GetRandomOrders( player, gamestate )
 
 	-- send the orders
-	ttrts.SendOrders( sock, orders )
+	ttrts.SendOrdersToHost( orders )
 
-	if table.getn( gamestate.units ) == 0 then gameover = true end
 end
